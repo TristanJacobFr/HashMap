@@ -12,12 +12,12 @@ NAME = hashmap
 all: static shared
 
 static: lib$(NAME).a
-shared: lib$(NAME).o
+shared: lib$(NAME).so
 
 lib$(NAME).a: $(OBJ)
 	$(AR) rcs $@ $^
 
-lib$(NAME).o: $(OBJ)
+lib$(NAME).so: $(OBJ)
 	$(CC) -shared -o $@ $^
 
 %.o: %.c
@@ -27,7 +27,7 @@ clean:
 	rm -f $(OBJ)
 
 fclean: clean
-	rm -f lib$(NAME).a lib$(NAME).o
+	rm -f lib$(NAME).a lib$(NAME).so
 
 re: fclean all
 
