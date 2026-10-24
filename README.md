@@ -42,18 +42,19 @@ NO_COLOR=1 make test
 The same test suite is run with GCC and Clang by GitHub Actions on every push
 and pull request.
 
-## Tagged builds
+## Releases
 
-Pushing a tag beginning with `v` runs the release build workflow. For example:
+Pushing a tag beginning with `v` runs the release workflow. For example:
 
 ```sh
-git tag v1.0.0
+git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 ```
 
-The workflow runs the tests, builds `libhashmap.a` and `libhashmap.so`, and
-uploads a compressed Linux x86-64 package with its SHA-256 checksum as a
-GitHub Actions artifact.
+The workflow runs the test suite with GCC, Clang, AddressSanitizer and UBSan.
+Only after every test job succeeds does it build `libhashmap.a` and
+`libhashmap.so`, package them with the public header, and publish a GitHub
+Release containing the Linux x86-64 archive and its SHA-256 checksum.
 
 ## License
 

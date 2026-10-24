@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests (${{ matrix.compiler }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v7
+
+      - name: Compile and run tests
+        env:
+          CC: ${{ matrix.compiler }}
+          NO_COLOR: "1"
+        run: make test
+
+  sanitizers:
+    name: AddressSanitizer + UBSan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v7
+
+      - name: Run sanitizers
+        env:
+          NO_COLOR: "1"
+        run: make test-sanitize
+
+  release:
+    name: Build and publish ${{ github.ref_name }}
+    needs: [tests, sanitizers]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PACKAGE_NAME: hashmap-${{ github.ref_name }}-linux-x86_64
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v7
+
+      - name: Build libraries
+        run: make all
+
+      - name: Package libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "dist/${PACKAGE_NAME}/include" "dist/${PACKAGE_NAME}/lib"
+          cp include/hashmap.h "dist/${PACKAGE_NAME}/include/"
+          cp libhashmap.a libhashmap.so "dist/${PACKAGE_NAME}/lib/"
+          cp README.md "dist/${PACKAGE_NAME}/"
+          tar -czf "dist/${PACKAGE_NAME}.tar.gz" -C dist "${PACKAGE_NAME}"
+          sha256sum "dist/${PACKAGE_NAME}.tar.gz" > "dist/${PACKAGE_NAME}.tar.gz.sha256"
+
+      - name: Publish GitHub release
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/${PACKAGE_NAME}.tar.gz" \
+            "dist/${PACKAGE_NAME}.tar.gz.sha256" \
+            --verify-tag \
+            --generate-notes \
+            --title "$GITHUB_REF_NAME"
