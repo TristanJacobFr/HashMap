@@ -1,0 +1,50 @@
+name: Build tagged version
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  PACKAGE_NAME: hashmap-${{ github.ref_name }}-linux-x86_64
+
+jobs:
+  build:
+    name: Build ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v7
+
+      - name: Run tests
+        env:
+          NO_COLOR: "1"
+        run: make test
+
+      - name: Build libraries
+        run: make all
+
+      - name: Package build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "dist/${PACKAGE_NAME}/include" "dist/${PACKAGE_NAME}/lib"
+          cp include/hashmap.h "dist/${PACKAGE_NAME}/include/"
+          cp libhashmap.a libhashmap.so "dist/${PACKAGE_NAME}/lib/"
+          cp README.md "dist/${PACKAGE_NAME}/"
+          tar -czf "dist/${PACKAGE_NAME}.tar.gz" -C dist "${PACKAGE_NAME}"
+          sha256sum "dist/${PACKAGE_NAME}.tar.gz" > "dist/${PACKAGE_NAME}.tar.gz.sha256"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PACKAGE_NAME }}
+          path: |
+            dist/${{ env.PACKAGE_NAME }}.tar.gz
+            dist/${{ env.PACKAGE_NAME }}.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 30
