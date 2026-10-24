@@ -1,2 +1,5 @@
 *.o
 *.a
+*.so
+tests/hashmap_tests
+tests/hashmap_tests_sanitize
